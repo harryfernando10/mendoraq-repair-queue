@@ -1,0 +1,8 @@
+MendoraQ is a graphical Windows desktop application, so this project does not include a console transcript as runtime evidence.
+
+Demonstration flow:
+- The initial dashboard shows Waiting 0 / 8, Completed 0, and Queue status Empty.
+- Register a request with a valid customer, device, and issue. The dashboard adds its sequential ticket ID and shows Available.
+- Add requests until eight are waiting. Status changes to Full and registration is disabled.
+- Serve Next to remove the oldest ticket, show its ID in the confirmation banner, and increment Completed.
+- Try a short field or whitespace-only value to see the inline correction message. It does not add a row or consume an ID.

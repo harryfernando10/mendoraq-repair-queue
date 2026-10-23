@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f6f5">
+  <title>MendoraQ — Repair Workshop Manager</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="MendoraQ home"><span class="brand-mark" aria-hidden="true">M</span><span><strong>MendoraQ</strong><small>REPAIR WORKSHOP MANAGER</small></span></a>
+      <div class="header-note"><span class="live-dot"></span><span>Workshop desk <b>·</b> Local session</span></div>
+    </header>
+
+    <section class="intro" aria-labelledby="page-title">
+      <div><p class="eyebrow">WORKSHOP OVERVIEW</p><h1 id="page-title">Keep every repair moving.</h1><p class="subtitle">Register incoming work and serve each repair in the order it arrived.</p></div>
+      <div class="stats" aria-label="Workshop summary">
+        <div class="stat"><span>WAITING</span><strong id="waiting-count">0<span class="capacity"> / 8</span></strong></div>
+        <div class="stat"><span>COMPLETED</span><strong id="completed-count">0</strong></div>
+        <div class="stat status-stat"><span>QUEUE STATUS</span><strong><i id="status-dot"></i><span id="queue-status">Empty</span></strong></div>
+      </div>
+    </section>
+
+    <div class="workspace">
+      <section class="panel registration" aria-labelledby="register-title">
+        <div class="panel-heading"><div><p class="eyebrow">NEW REQUEST</p><h2 id="register-title">Register a repair</h2></div><span class="step-tag">01</span></div>
+        <form id="ticket-form" novalidate>
+          <div class="field"><label for="customer">Customer name</label><input id="customer" name="customer" autocomplete="name" maxlength="60" placeholder="e.g. Alex Morgan" aria-describedby="customer-error"><small class="field-error" id="customer-error"></small></div>
+          <div class="field"><label for="device">Device or item</label><input id="device" name="device" maxlength="40" placeholder="e.g. iPhone 15" aria-describedby="device-error"><small class="field-error" id="device-error"></small></div>
+          <div class="field"><label for="issue">Issue description</label><textarea id="issue" name="issue" maxlength="200" rows="3" placeholder="Describe the problem…" aria-describedby="issue-error"></textarea><small class="field-error" id="issue-error"></small></div>
+          <div class="form-actions"><button class="button primary" type="submit">Register ticket <span aria-hidden="true">↗</span></button><button class="button quiet" type="reset">Clear</button></div>
+        </form>
+        <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+        <div class="form-footnote"><span aria-hidden="true">i</span> Tickets are stored for this session only.</div>
+      </section>
+
+      <div class="right-column">
+        <section class="panel queue-panel" aria-labelledby="queue-title">
+          <div class="panel-heading"><div><p class="eyebrow">SERVICE ORDER</p><h2 id="queue-title">Waiting queue <span class="count-pill" id="queue-pill">0</span></h2></div><button class="button serve" id="serve-button" type="button" disabled><span aria-hidden="true">▶</span> Serve next</button></div>
+          <div class="table-wrap"><table><thead><tr><th scope="col">TICKET ID</th><th scope="col">CUSTOMER</th><th scope="col">DEVICE</th><th scope="col">ISSUE</th></tr></thead><tbody id="ticket-rows"></tbody></table><div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true">○</span><strong>Nothing waiting right now</strong><span>New repair requests will appear here.</span></div></div>
+        </section>
+
+        <section class="panel buffer-panel" aria-labelledby="buffer-title">
+          <div class="panel-heading buffer-heading"><div><p class="eyebrow">DATA STRUCTURE</p><h2 id="buffer-title">Circular buffer</h2></div><div class="legend"><span><i class="legend-occupied"></i>Occupied</span><span><i class="legend-empty"></i>Empty</span></div></div>
+          <div class="buffer-track" id="buffer-slots" aria-label="Physical circular queue slots"></div>
+          <div class="pointer-row"><span><b class="pointer front-key">FRONT</b> next to serve</span><span><b class="pointer rear-key">REAR</b> next insertion</span></div>
+        </section>
+      </div>
+    </div>
+    <footer><span><b>MendoraQ</b> <span class="footer-sep">/</span> Circular queue demonstrator</span><span>FIFO service order <span class="footer-sep">·</span> Capacity 8</span></footer>
+    <div class="module-error" id="module-error" role="alert" hidden><strong>Unable to load the workshop engine</strong><span>Reload the page. If the problem continues, check that the WebAssembly files are built and served with this page.</span></div>
+  </main>
+  <script src="mendoraq.js" onerror="document.getElementById('module-error').hidden = false"></script>
+</body>
+</html>

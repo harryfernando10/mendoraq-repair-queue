@@ -1,0 +1,21 @@
+/build*/
+/cmake-build-*/
+*.o
+*.obj
+*.exe
+*.out
+*.pdb
+*.ilk
+*.class
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# CMake user presets
+CMakeUserPresets.json
+
+
+# Generated Emscripten browser module
+/web/mendoraq.js
+/web/mendoraq.wasm
