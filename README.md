@@ -1,127 +1,354 @@
 # MendoraQ — Repair Workshop Manager
 
-MendoraQ is a C++17 desktop application for organizing a small repair workshop's waiting requests. It demonstrates a manually implemented circular queue and separates its business rules from its Windows graphical interface.
+**A C++17 repair workshop simulator demonstrating a manually implemented circular queue, FIFO service, robust input validation, and a native Windows desktop interface.**
 
-## Purpose and SDG 8 relevance
+[**🌐 Open Live Demo**](https://harryfernando10.github.io/mendoraq-repair-queue/) · [**📦 Source Code**](https://github.com/harryfernando10/mendoraq-repair-queue)
 
-Customers register a name, device or item, and reported issue. The workshop serves the oldest waiting request first. In this educational model, serving a ticket marks the job complete; there is no separate in-progress repair state. An orderly service queue is a small example of a tool that can help a local business organize its work, with a modest connection to **UN Sustainable Development Goal 8: Decent Work and Economic Growth**. The simulator does not measure or claim broader economic outcomes.
+---
 
-## Desktop interface
+## Overview
 
-The initial dashboard is titled **MendoraQ — Repair Workshop Manager** and presents waiting capacity (`n / 8`), completed jobs, and Empty / Available / Full status. Its eight physical slots show occupied ticket IDs and the actual FRONT and next-insertion REAR indices; the FIFO table remains in logical service order. The balanced registration form validates each field and shows corrections inline. The Serve Next action names the served ticket and updates the completion count. The window resizes and maximizes with a minimum track size so the form and queue remain available. The executable manifest enables Per-Monitor DPI Awareness V2; `WM_DPICHANGED` updates child control fonts and recomputes geometry for the new DPI. GDI text uses Segoe UI with ClearType-quality fonts and is recreated during paint at the target window's DPI. The app uses native Windows controls and GDI drawing, with no third-party GUI dependency.
+MendoraQ helps a small repair workshop organize incoming repair requests in the order they arrive. Customers submit a name, device or item, and issue description. The workshop serves the oldest waiting ticket first, following the **First In, First Out (FIFO)** principle.
 
-## Queue and workshop rules
+The project demonstrates how a fundamental data structure can solve a practical scheduling problem. It includes a manually implemented circular queue with a fixed capacity of eight tickets, a separate workshop-management layer, and two interfaces:
 
-`CircularTicketQueue` is a manually implemented fixed array of eight tickets. It maintains `front`, `rear` (the next insertion slot), and `size`; size distinguishes empty from full. Enqueue and dequeue advance indices with modulo arithmetic, and snapshots walk the logical occupied range in FIFO order without mutating it. The implementation does not use `std::queue`.
+- **Windows desktop application:** A native, resizable graphical dashboard built with Win32 and GDI.
+- **Browser application:** An HTML/CSS/JavaScript interface connected to the same C++ workshop logic compiled to WebAssembly.
 
-`RepairWorkshop` owns registration, validation, ID assignment, and completion counting. Shared field validation trims leading/trailing ASCII whitespace, counts UTF-8 characters, and applies these limits:
+All workshop data is stored in memory and resets when the application session ends.
 
-| Field | Allowed length |
-| --- | ---: |
-| Customer name | 2–60 characters |
-| Device/item | 2–40 characters |
-| Reported issue | 5–200 characters |
+## Try MendoraQ
 
-Customer names require 2–60 characters and at least two letters; letters, spaces, periods, apostrophes, and hyphens are allowed. Device/item names require 2–40 characters and at least two letters, with digits and common product notation allowed. Issue descriptions require 5–200 characters and at least three letters. Values are trimmed before validation; whitespace-only values and control characters are rejected. Common Latin, Greek, Cyrillic, Arabic, Indic, CJK, and Hangul letter ranges are recognized. This practical UTF-8 handling is not a complete Unicode character database. Repeated-character spam is rejected when it contains a run of six identical letters/digits or at least six meaningful characters with one character making up 80% or more. IDs start at `T001` for each run and use three digits as a minimum width. Rejected registration does not consume an ID. The completed-job count increases only after a successful FIFO service. All data is in memory and resets on exit.
+### Live browser demo
 
-## Structure
+**[Launch MendoraQ →](https://harryfernando10.github.io/mendoraq-repair-queue/)**
+
+The browser version lets you register repair requests, view the waiting queue, inspect the circular buffer, and serve tickets without installing a C++ compiler.
+
+### How to use it
+
+1. Enter the customer's name, device or item, and reported issue.
+2. Register the ticket and review the generated ticket ID.
+3. Inspect the waiting queue and the eight physical buffer slots.
+4. Select **Serve Next** to complete the oldest waiting ticket.
+5. Observe the queue, buffer indices, queue status, and completed-job count update.
+
+The queue accepts at most eight waiting tickets. A ninth ticket is rejected until space becomes available.
+
+> **Note:** The browser demo uses WebAssembly to execute the C++ workshop logic. The desktop application is a separate native Windows build.
+
+## Features
+
+| Feature | Description |
+|---|---|
+| Fixed-capacity circular queue | Manually implemented array-based queue with eight slots |
+| FIFO service | Tickets are served in their order of arrival |
+| Ticket identification | Sequential IDs such as `T001`, `T002`, and `T003` |
+| Input validation | Field-specific length, character, and spam checks |
+| Safe registration | Invalid requests do not consume ticket IDs |
+| Queue status | Displays waiting capacity and Empty, Available, or Full status |
+| Physical buffer visualization | Shows all eight slots and the FRONT and REAR indices |
+| Completion tracking | Increments only after a successful service operation |
+| Native desktop interface | Resizable Windows dashboard with DPI-aware rendering |
+| Browser interface | WebAssembly-powered frontend using the existing C++ core |
+| Automated core tests | Tests queue behavior, validation, IDs, and state transitions |
+
+## Understanding the circular queue
+
+MendoraQ uses a **circular array**, rather than `std::queue`, to implement its waiting queue.
+
+The buffer contains eight physical slots, indexed from `0` to `7`.
+
+### Queue state
+
+- **`front`** — Index of the oldest waiting ticket and the next ticket to serve.
+- **`rear`** — Index of the next slot where a new ticket will be inserted.
+- **`size`** — Number of tickets currently waiting.
+
+The `size` variable distinguishes an empty queue from a full queue, even when the index positions wrap around.
+
+### Circular movement
+
+Both insertion and removal advance their indices using modulo arithmetic:
+
+`next_index = (current_index + 1) % 8`
+
+When an index reaches slot `7`, its next position becomes slot `0`. This allows the queue to reuse vacated slots without shifting all remaining elements.
+
+### FIFO behavior
+
+- **Enqueue:** Insert a valid ticket at `rear`, advance the index, and update the size.
+- **Dequeue:** Remove the ticket at `front`, advance the index, and update the size.
+- **Snapshot:** Traverse the occupied slots in logical FIFO order without modifying the queue.
+- **Full queue:** Reject additional tickets when all eight slots are occupied.
+- **Empty queue:** Prevent service when no tickets are waiting.
+
+The physical circular buffer and the logical waiting list are different views of the same queue. The dashboard shows the physical slots, while the service table displays tickets in FIFO order.
+
+## Validation and business rules
+
+The `RepairWorkshop` layer owns input validation, registration, ticket-ID assignment, and completion counting. These rules are enforced in C++, rather than relying solely on frontend checks.
+
+| Field | Length limit | Validation requirements |
+|---|---:|---|
+| Customer name | 2–60 characters | At least two letters; supports spaces, periods, apostrophes, and hyphens |
+| Device or item | 2–40 characters | At least two letters; digits and common product notation are permitted |
+| Reported issue | 5–200 characters | At least three letters; ordinary punctuation and digits are permitted |
+
+Additional validation rules:
+
+- Leading and trailing ASCII whitespace is trimmed before validation.
+- Blank values and control characters are rejected.
+- Repeated-character spam is rejected when a run of six identical letters/digits occurs, or when at least six meaningful characters contain one character making up 80% or more.
+- Common Latin, Greek, Cyrillic, Arabic, Indic, CJK, and Hangul letter ranges are recognized.
+- UTF-8 character counting and letter recognition are practical implementations, not a complete Unicode character database.
+
+### Ticket and completion rules
+
+- Ticket IDs begin at `T001` for each application run, with three digits as the minimum width.
+- Failed registration does not consume a ticket ID.
+- A ticket is completed when it is successfully served from the front of the queue.
+- Serving an empty queue does not increment the completed count.
+- There is no separate in-progress repair state, database, or persistent storage.
+
+## Architecture and technology stack
+
+The project separates the queue implementation, workshop rules, and presentation layers.
+
+### Native Windows application
+
+- **Language:** C++17
+- **GUI:** Win32 API and GDI
+- **Rendering:** Segoe UI fonts with ClearType-quality text rendering
+- **DPI support:** Per-Monitor DPI Awareness V2 and `WM_DPICHANGED` handling
+- **Build system:** CMake
+- **Testing:** CTest with a dependency-free C++ test executable
+
+The desktop application uses native Windows APIs without a third-party GUI framework. Its window can be resized or maximized while maintaining a minimum usable layout.
+
+### Browser application
+
+- **Core logic:** Existing C++ workshop and circular queue implementation
+- **WebAssembly:** Emscripten and Embind
+- **Frontend:** HTML, CSS, and JavaScript
+- **Hosting and deployment:** GitHub Pages with GitHub Actions
+
+The browser frontend handles form interactions and presentation. Queue operations, validation, ticket IDs, and completion counting remain in C++. Embind exposes the required C++ interface to JavaScript.
+
+The browser version does not implement a separate JavaScript queue or use a persistence service. Its state exists only for the current page session.
+
+## Project structure
 
 ```text
-include/RepairTicket.h             Ticket data model
-include/CircularTicketQueue.h      Circular queue interface and physical slot snapshot
-include/RepairWorkshop.h           Workshop API and validation result
-src/CircularTicketQueue.cpp        Circular-array queue
-src/RepairWorkshop.cpp             Validation, IDs, service counts, UI-safe queue view
-src/gui_win32.cpp                  Resizable, per-monitor DPI-aware Windows dashboard
-src/mendoraq.manifest              Per-Monitor V2 DPI awareness declaration
-src/mendoraq.rc                    Embedded Windows application manifest resource
-src/main.cpp                       Earlier console demonstration (not built)
-tests/queue_tests.cpp              Dependency-free queue/workshop tests
-CMakeLists.txt                     Application, core library, and CTest targets
-sample_output.txt                  GUI behavior and demonstration notes
+mendoraq-repair-queue/
+├── .github/
+│   └── workflows/
+│       └── deploy-pages.yml
+├── include/
+│   ├── RepairTicket.h
+│   ├── CircularTicketQueue.h
+│   └── RepairWorkshop.h
+├── src/
+│   ├── CircularTicketQueue.cpp
+│   ├── RepairWorkshop.cpp
+│   ├── gui_win32.cpp
+│   ├── wasm_bridge.cpp
+│   ├── main.cpp
+│   ├── mendoraq.manifest
+│   └── mendoraq.rc
+├── tests/
+│   └── queue_tests.cpp
+├── web/
+│   ├── index.html
+│   ├── styles.css
+│   └── app.js
+├── CMakeLists.txt
+├── README.md
+├── .gitignore
+└── sample_output.txt
 ```
 
-## Browser version (C++ WebAssembly)
+| File | Responsibility |
+|---|---|
+| `RepairTicket.h` | Ticket data model |
+| `CircularTicketQueue.h/.cpp` | Fixed-array circular queue and physical slot snapshots |
+| `RepairWorkshop.h/.cpp` | Validation, registration, IDs, service counts, and workshop state |
+| `gui_win32.cpp` | Native Windows desktop interface |
+| `wasm_bridge.cpp` | Embind interface exposing the C++ core to the browser |
+| `main.cpp` | Earlier console demonstration; not built as the current GUI application |
+| `mendoraq.manifest` and `mendoraq.rc` | Windows application manifest and embedded resource |
+| `queue_tests.cpp` | Queue and workshop unit tests |
+| `web/` | Browser interface and frontend assets |
+| `deploy-pages.yml` | Automated WebAssembly build and GitHub Pages deployment |
 
-The `web/` interface uses the same `mendoraq_core` C++ sources as the Windows application. `src/wasm_bridge.cpp` exposes a small Embind API around `RepairWorkshop`; JavaScript handles form events and renders the C++ FIFO snapshot and eight physical slots. No browser-side queue or persistence service is used. A built `web/mendoraq.js` and `web/mendoraq.wasm` are generated artifacts and are intentionally not committed.
+Generated WebAssembly files, including `web/mendoraq.js` and `web/mendoraq.wasm`, are build artifacts and are intentionally excluded from source control.
 
-### Build the WebAssembly module on Windows
+## Build and run on Windows
 
-Install Emscripten once using its official SDK in PowerShell. This does not change Windows security settings:
+### Prerequisites
 
-```powershell
-git clone https://github.com/emscripten-core/emsdk.git "$env:USERPROFILE\emsdk"
-Set-Location "$env:USERPROFILE\emsdk"
-.\emsdk.bat install latest
-.\emsdk.bat activate latest
-```
+- Windows
+- CMake 3.16 or newer
+- A C++17 compiler toolchain, such as Visual Studio Build Tools or an appropriately configured GCC toolchain
 
-After activation, open a new PowerShell window so the SDK paths are available. Return to the MendoraQ project directory and confirm `emcc -v` works before configuring/building:
+Open a Developer PowerShell or Developer Command Prompt when using Visual Studio Build Tools.
 
-```powershell
-Set-Location "C:\path\to\mendoraq-repair-queue"
-emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=Release
-cmake --build build-wasm --target mendoraq_web
-```
-
-This writes `web/mendoraq.js` and `web/mendoraq.wasm`. The generated files are ignored by Git. Requirements are Git for the one-time SDK checkout, the Emscripten SDK, and CMake 3.16 or newer. On Windows, activating the SDK updates the environment for new terminals; the official SDK also provides `emsdk_env.bat` for Command Prompt sessions.
-
-### Serve and open
-
-From the project root, start Python's static server:
-
-```powershell
-python -m http.server 8000 --directory web
-```
-
-Open <http://localhost:8000/> in a browser. Use HTTP rather than opening `index.html` as a `file://` URL so the browser can load the WebAssembly module. The browser session is in memory and resets when the page is reloaded. A load error is shown if the WebAssembly module cannot be loaded.
-
-To verify the C++ integration, build the module, open the page, register a ticket, and check that the ticket ID and physical slot appear. Register up to eight tickets, serve one, and register another: the physical slots wrap while the waiting table remains in FIFO order. The status and completed count are read from the C++ workshop state.
-
-### Native tests
-
-Keep using the native CMake build and tests described below; the optional Emscripten target does not replace them. There is no browser automation configured in this repository.
-
-### GitHub Pages deployment
-
-The workflow in `.github/workflows/deploy-pages.yml` builds the C++ WebAssembly target and deploys the contents of `web/` when changes are pushed to `main` or when manually started from the Actions tab. The planned site URL is <https://harryfernando10.github.io/mendoraq-repair-queue/>. It will become available after the first successful deployment; deployment has not yet been confirmed. Ensure GitHub Pages is configured to use **GitHub Actions** as its publishing source in the repository settings.
-
-## Windows build and launch
-
-Requirements: Windows, CMake 3.16 or newer, and a C++17 toolchain. For Visual Studio Build Tools, use a Developer PowerShell or Developer Command Prompt. From the project root:
+From the project root, configure and build:
 
 ```powershell
 cmake -S . -B build -A x64
 cmake --build build --config Release
 ```
 
-Launch the desktop app with:
+Launch the native application:
 
 ```powershell
 & .\build\Release\mendoraq.exe
 ```
 
-For a single-configuration generator such as Ninja or MinGW Makefiles, configure with the installed compiler and run `build\mendoraq.exe` directly. The project does not hardcode a toolchain path. The same CMake project can build the core and tests on non-Windows systems, but the GUI target is Windows-only.
+These commands use a Visual Studio generator. For a single-configuration generator such as Ninja or MinGW Makefiles, configure with the installed toolchain and launch the executable from the corresponding build directory instead.
 
-## Tests
+## Build the WebAssembly version locally
 
-Configure and build as above, then run:
+The live browser demo is built automatically by GitHub Actions. To build the WebAssembly module on your own Windows machine, install the official Emscripten SDK.
+
+### 1. Install and activate Emscripten
+
+In PowerShell:
+
+```powershell
+git clone https://github.com/emscripten-core/emsdk.git "$env:USERPROFILE\emsdk"
+Set-Location "$env:USERPROFILE\emsdk"
+
+.\emsdk.bat install latest
+.\emsdk.bat activate latest
+```
+
+Open an Emscripten-configured terminal and confirm that the compiler is available:
+
+```powershell
+emcc -v
+```
+
+### 2. Configure and compile
+
+Return to the MendoraQ project directory:
+
+```powershell
+Set-Location "C:\path\to\mendoraq-repair-queue"
+
+emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=Release
+cmake --build build-wasm --target mendoraq_web
+```
+
+Replace the example path with your actual project location.
+
+The build should generate:
+
+```text
+web/mendoraq.js
+web/mendoraq.wasm
+```
+
+### 3. Run the local browser version
+
+From the project root, start a local HTTP server:
+
+```powershell
+python -m http.server 8000 --directory web
+```
+
+Open [http://localhost:8000/](http://localhost:8000/) in your browser.
+
+Use HTTP instead of opening `index.html` directly as a `file://` URL so the browser can load the WebAssembly module correctly.
+
+Stop the server with `Ctrl + C` when finished.
+
+## Automated deployment
+
+The repository includes a GitHub Actions workflow that builds the existing C++ WebAssembly target and publishes the contents of `web/` to GitHub Pages.
+
+On pushes to `main`, the workflow:
+
+1. Checks out the repository.
+2. Configures the Emscripten build environment.
+3. Compiles the `mendoraq_web` target.
+4. Verifies that the generated JavaScript and WebAssembly module exist.
+5. Uploads the website artifact and deploys it to GitHub Pages.
+
+The deployed site is available at:
+
+**https://harryfernando10.github.io/mendoraq-repair-queue/**
+
+To publish future updates, commit and push the relevant source changes to `main`. The deployment workflow will run automatically.
+
+## Tests and verification
+
+The native test suite exercises the queue and workshop core without opening a graphical window.
+
+After configuring and building the project, run:
 
 ```powershell
 ctest --test-dir build -C Release --output-on-failure
 ```
 
-The test target covers FIFO order, capacity and ninth-item rejection, wraparound, snapshots, validation limits and trimming, repeated-character spam rejection with normal-input regressions, ID sequencing, failed-registration non-mutation, completion counts, and empty/full transitions. Tests exercise the core without opening a window. No automated GUI smoke test is included; visually inspect form errors, add/serve feedback, queue rows, and disabled actions during a desktop demonstration.
+Coverage includes:
 
-## Complexity
+- FIFO insertion and removal
+- Queue capacity and ninth-ticket rejection
+- Circular wraparound
+- Queue snapshots and physical slot state
+- Empty/full transitions
+- Input trimming, validation limits, and repeated-character spam rejection
+- Normal-input regression cases
+- Ticket-ID sequencing
+- Failed-registration state preservation
+- Completion counting
 
-- Enqueue, dequeue, peek, full/empty checks, and size: **O(1)**.
-- FIFO snapshot: **O(n)** for `n` waiting tickets.
-- Queue storage: **O(8)** ticket slots.
+The browser JavaScript syntax can also be checked with:
 
-## Suggested four-person presentation split
+```powershell
+node --check web/app.js
+```
 
-1. Explain the circular array, modulo wraparound, and `front` / `rear` / `size` invariants.
-2. Demonstrate workshop validation, ticket IDs, and safe failure behavior.
-3. Walk through dashboard states, registration, FIFO display, and serving a job.
-4. Present CMake/CTest, test coverage, project structure, and limitations such as in-memory storage.
+**Testing limitation:** The repository does not include automated browser end-to-end tests or a native GUI smoke-test suite. The browser interface and Windows dashboard should therefore be tested manually in addition to running the core tests.
+
+## Complexity analysis
+
+Let \(n\) be the number of waiting tickets, where \(0 \le n \le 8\).
+
+| Operation | Time complexity |
+|---|---:|
+| Enqueue | \(O(1)\) |
+| Dequeue | \(O(1)\) |
+| Peek at next ticket | \(O(1)\) |
+| Check empty/full status | \(O(1)\) |
+| Read queue size | \(O(1)\) |
+| Create FIFO snapshot | \(O(n)\) |
+
+**Queue storage:** \(O(8)\), which is constant space because the capacity is fixed.
+
+## SDG 8 relevance
+
+MendoraQ has a modest educational connection to **United Nations Sustainable Development Goal 8: Decent Work and Economic Growth**.
+
+An orderly service queue illustrates how a small workshop can structure incoming requests, maintain service order, and track completed jobs. The project demonstrates a basic organizational tool; it does not measure productivity, employment, income, or broader economic impact.
+
+## Limitations and possible extensions
+
+Current limitations:
+
+- Fixed capacity of eight waiting tickets
+- In-memory data only; state resets when the application or browser session ends
+- No database, authentication, networking, or persistent history
+- Serving a ticket marks it complete immediately; no repair-progress workflow is modeled
+- No automated browser end-to-end tests
+- Unicode letter recognition covers common ranges but is not a complete Unicode implementation
+
+Possible future improvements include persistent storage, repair-status tracking, service history, configurable queue capacity, and automated browser tests. These are potential extensions, not existing features.
+
+---
+
+**MendoraQ** demonstrates how a manually implemented circular queue can support a practical workflow while keeping data-structure logic, business rules, and user-interface code separate.
+
+[Open the live demo](https://harryfernando10.github.io/mendoraq-repair-queue/) · [Explore the source code](https://github.com/harryfernando10/mendoraq-repair-queue)
