@@ -74,13 +74,17 @@ From the project root, start Python's static server:
 python -m http.server 8000 --directory web
 ```
 
-Open <http://localhost:8000/> in a browser. Use HTTP rather than opening `index.html` as a `file://` URL so the browser can load the WebAssembly module. The browser session is in memory and resets when the page is reloaded. Before the module has been built, the page displays a setup notice.
+Open <http://localhost:8000/> in a browser. Use HTTP rather than opening `index.html` as a `file://` URL so the browser can load the WebAssembly module. The browser session is in memory and resets when the page is reloaded. A load error is shown if the WebAssembly module cannot be loaded.
 
 To verify the C++ integration, build the module, open the page, register a ticket, and check that the ticket ID and physical slot appear. Register up to eight tickets, serve one, and register another: the physical slots wrap while the waiting table remains in FIFO order. The status and completed count are read from the C++ workshop state.
 
 ### Native tests
 
 Keep using the native CMake build and tests described below; the optional Emscripten target does not replace them. There is no browser automation configured in this repository.
+
+### GitHub Pages deployment
+
+The workflow in `.github/workflows/deploy-pages.yml` builds the C++ WebAssembly target and deploys the contents of `web/` when changes are pushed to `main` or when manually started from the Actions tab. The planned site URL is <https://harryfernando10.github.io/mendoraq-repair-queue/>. It will become available after the first successful deployment; deployment has not yet been confirmed. Ensure GitHub Pages is configured to use **GitHub Actions** as its publishing source in the repository settings.
 
 ## Windows build and launch
 
