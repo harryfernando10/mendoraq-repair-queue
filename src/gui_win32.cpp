@@ -301,27 +301,90 @@ void submit(HWND hwnd) {
     updateButtons(); InvalidateRect(hwnd, nullptr, FALSE);
 }
 
-void drawButton(const DRAWITEMSTRUCT& item) {
-    const bool enabled = IsWindowEnabled(item.hwndItem) != FALSE;
+void drawButton(const DRAWITEMSTRUCT& item)
+{
+    const bool enabled =
+        IsWindowEnabled(item.hwndItem) != FALSE;
+
     const bool primary = item.CtlID == AddButton;
     const bool clear = item.CtlID == ClearButton;
     const bool pressed = (item.itemState & ODS_SELECTED) != 0;
     const bool focused = (item.itemState & ODS_FOCUS) != 0;
     const bool hovered = (item.itemState & ODS_HOTLIGHT) != 0;
-    const COLORREF fillColor = !enabled ? RGB(235, 236, 233) :
-        (primary ? (pressed ? RGB(22, 88, 78) : (hovered ? RGB(25, 96, 85) : Teal)) :
-         (clear ? (hovered ? RGB(245, 247, 244) : Surface) : (hovered ? RGB(224, 239, 232) : RGB(236, 244, 240))));
-    const COLORREF ink = !enabled ? RGB(160, 164, 160) : (primary ? Surface : (clear ? Muted : Teal));
-    HBRUSH brush = CreateSolidBrush(fillColor); HPEN pen = CreatePen(PS_SOLID, std::max(1, dp(1)), clear ? Line : fillColor);
-    auto oldBrush = SelectObject(item.hDC, brush); auto oldPen = SelectObject(item.hDC, pen);
-    Rectangle(item.hDC, item.rcItem.left, item.rcItem.top, item.rcItem.right, item.rcItem.bottom);
-    SelectObject(item.hDC, oldBrush); SelectObject(item.hDC, oldPen); DeleteObject(brush); DeleteObject(pen);
-    const wchar_t* caption = item.CtlID == AddButton ? L"Register ticket" : (item.CtlID == ClearButton ? L"Clear" : L"Serve next ticket");
-    SetBkMode(item.hDC, TRANSPARENT); SetTextColor(item.hDC, ink);
-    HFONT font = makeFont(item.hDC, 9, !clear); auto oldFont = SelectObject(item.hDC, font);
-    RECT rc = item.rcItem; DrawTextW(item.hDC, caption, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-    if (focused) { InflateRect(&rc, -dp(5), -dp(5)); DrawFocusRect(item.hDC, &rc); }
-    SelectObject(item.hDC, oldFont); DeleteObject(font);
+
+    const COLORREF fillColor =
+        !enabled
+            ? RGB(235, 236, 233)
+            : (primary
+                   ? (pressed
+                          ? RGB(22, 88, 78)
+                          : (hovered ? RGB(25, 96, 85) : Teal))
+                   : (clear
+                          ? (hovered ? RGB(245, 247, 244) : Surface)
+                          : (hovered
+                                 ? RGB(224, 239, 232)
+                                 : RGB(236, 244, 240))));
+
+    const COLORREF ink =
+        !enabled
+            ? RGB(160, 164, 160)
+            : (primary ? Surface : (clear ? Muted : Teal));
+
+    HBRUSH brush = CreateSolidBrush(fillColor);
+    HPEN pen = CreatePen(
+        PS_SOLID,
+        std::max(1, dp(1)),
+        clear ? Line : fillColor
+    );
+
+    auto oldBrush = SelectObject(item.hDC, brush);
+    auto oldPen = SelectObject(item.hDC, pen);
+
+    Rectangle(
+        item.hDC,
+        item.rcItem.left,
+        item.rcItem.top,
+        item.rcItem.right,
+        item.rcItem.bottom
+    );
+
+    SelectObject(item.hDC, oldBrush);
+    SelectObject(item.hDC, oldPen);
+
+    DeleteObject(brush);
+    DeleteObject(pen);
+
+    const wchar_t* caption =
+        item.CtlID == AddButton
+            ? L"Register ticket"
+            : (item.CtlID == ClearButton
+                   ? L"Clear"
+                   : L"Serve next ticket");
+
+    SetBkMode(item.hDC, TRANSPARENT);
+    SetTextColor(item.hDC, ink);
+
+    HFONT font = makeFont(item.hDC, 9, !clear);
+    auto oldFont = SelectObject(item.hDC, font);
+
+    RECT rc = item.rcItem;
+
+    DrawTextW(
+        item.hDC,
+        caption,
+        -1,
+        &rc,
+        DT_CENTER | DT_VCENTER | DT_SINGLELINE
+    );
+
+    if (focused)
+    {
+        InflateRect(&rc, -dp(5), -dp(5));
+        DrawFocusRect(item.hDC, &rc);
+    }
+
+    SelectObject(item.hDC, oldFont);
+    DeleteObject(font);
 }
 
 LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wp, LPARAM lp) {
